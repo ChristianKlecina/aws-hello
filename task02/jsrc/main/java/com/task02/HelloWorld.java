@@ -13,25 +13,24 @@ import java.util.Map;
 	isPublishVersion = false,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-public class HelloWorld implements RequestHandler<Map<String, Object> , Map<String, Object>> {
+public class HelloWorld implements RequestHandler<Map<String, String> , Map<String, Object>> {
 
 
 
 
-	public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
+	public Map<String, Object> handleRequest(Map<String, String> input, Context context) {
 
 
 		Map<String, Object> resultMap = new HashMap<>();
-		Map<String, Object> response = new HashMap<>();
-		String path = (String) input.get("path");
-		String method = (String) input.get("httpMethod");
+		String path = input.get("path");
+		String method = input.get("httpMethod");
 
 		if ("/hello".equals(path)) {
-			response.put("statusCode", 200);
-			response.put("message", "Hello from Lambda");
+			resultMap.put("statusCode", 200);
+			resultMap.put("message", "Hello from Lambda");
 		} else {
-			response.put("statusCode", 400);
-			response.put("message", "Bad request syntax or unsupported method. Request path: " + path + ". HTTP method: " + method);
+			resultMap.put("statusCode", 400);
+			resultMap.put("message", "Bad request syntax or unsupported method. Request path: " + path + ". HTTP method: " + method);
 		}
 
 		return resultMap;
