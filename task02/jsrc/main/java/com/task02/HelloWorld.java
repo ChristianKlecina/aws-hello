@@ -29,6 +29,7 @@ public class HelloWorld implements RequestHandler<Map<String, String> , Map<Stri
 			// Retrieve AWS function URL
 			String functionArn = context.getInvokedFunctionArn();
 			String functionUrl = "https://" + functionArn.split(":")[5] + ".execute-api." + context.getAwsRequestId().split(":")[3] + ".amazonaws.com";
+			requestData.put("functionUrl", functionUrl);
 			resultMap.put("functionUrl", functionUrl);
 		} catch (Exception e) {
 			// Handle error
@@ -36,6 +37,7 @@ public class HelloWorld implements RequestHandler<Map<String, String> , Map<Stri
 			resultMap.put("message", "Bad request syntax or unsupported method. Request path: "
 					+ context.getFunctionName() + ". HTTP method: " + context.getInvokedFunctionArn());
 		}
+
 		return resultMap;
 	}
 
