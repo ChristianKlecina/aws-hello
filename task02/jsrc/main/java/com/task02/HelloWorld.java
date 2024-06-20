@@ -13,9 +13,9 @@ import java.util.Map;
 	isPublishVersion = false,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-public class HelloWorld implements RequestHandler<Object, Map<String, Object>> {
+public class HelloWorld implements RequestHandler<Map<String, String> , Map<String, Object>> {
 
-	public Map<String, Object> handleRequest(Object request, Context context) {
+	public Map<String, Object> handleRequest(Map<String, String> requestData, Context context) {
 		Map<String, Object> resultMap = new HashMap<>();
 		try {
 			// Main logic
@@ -30,4 +30,6 @@ public class HelloWorld implements RequestHandler<Object, Map<String, Object>> {
 		}
 		return resultMap;
 	}
+
+
 }
