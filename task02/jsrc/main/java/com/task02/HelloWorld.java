@@ -4,6 +4,8 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.syndicate.deployment.annotations.lambda.LambdaHandler;
 import com.syndicate.deployment.model.RetentionSetting;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,12 +15,14 @@ import java.util.Map;
 	isPublishVersion = false,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-public class HelloWorld implements RequestHandler<Map<String, String> , Map<String, Object>> {
+public class HelloWorld implements RequestHandler<APIGatewayV2HTTPEvent , Map<String, Object>> {
 
 
 
 
-	public Map<String, Object> handleRequest(Map<String, String> requestData, Context context) {
+	public Map<String, Object> handleRequest(APIGatewayV2HTTPEvent requestData, Context context) {
+
+
 		Map<String, Object> resultMap = new HashMap<>();
 		try {
 			// Main logic
@@ -29,13 +33,12 @@ public class HelloWorld implements RequestHandler<Map<String, String> , Map<Stri
 			// Retrieve AWS function URL
 			String functionArn = context.getInvokedFunctionArn();
 			String functionUrl = "https://" + functionArn.split(":")[5] + ".execute-api." + context.getAwsRequestId().split(":")[3] + ".amazonaws.com";
-			requestData.put("functionUrl", functionUrl);
 			resultMap.put("functionUrl", functionUrl);
 		} catch (Exception e) {
 			// Handle error
 			resultMap.put("statusCode", 400);
 			resultMap.put("message", "Bad request syntax or unsupported method. Request path: "
-					+ context.getFunctionName() + ". HTTP method: " + context.getInvokedFunctionArn());
+					+ requestData.getRequestContext().getHttp().getPath() + ". HTTP method: " + requestData.getRequestContext().getHttp().getMethod());
 		}
 
 		return resultMap;
