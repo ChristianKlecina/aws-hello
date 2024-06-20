@@ -16,17 +16,17 @@ import java.util.Map;
 public class HelloWorld implements RequestHandler<Object, Map<String, Object>> {
 
 	public Map<String, Object> handleRequest(Object request, Context context) {
-		System.out.println("Hello from lambda");
+		Map<String, Object> resultMap = new HashMap<>();
 		try {
+			// Main logic
 			System.out.println("Hello from lambda");
 			resultMap.put("statusCode", 200);
 			resultMap.put("message", "Hello from Lambda");
 		} catch (Exception e) {
-			String path = (String) request.getOrDefault("path", "unknown");
-			String method = (String) request.getOrDefault("httpMethod", "unknown");
+			// Handle error
 			resultMap.put("statusCode", 400);
 			resultMap.put("message", "Bad request syntax or unsupported method. Request path: "
-					+ path + ". HTTP method: " + method);
+					+ context.getFunctionName() + ". HTTP method: " + context.getInvokedFunctionArn() );
 		}
 		return resultMap;
 	}
