@@ -8,7 +8,7 @@ import com.syndicate.deployment.model.RetentionSetting;
 import java.util.HashMap;
 import java.util.Map;
 
-@LambdaHandler(lambdaName = "hello_world",
+@LambdaHandler(lambdaName = "hello_world-test",
 	roleName = "hello_world-role",
 	isPublishVersion = false,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
@@ -28,7 +28,9 @@ public class HelloWorld implements RequestHandler<Map<String, String> , Map<Stri
 		if ("/hello".equals(path)) {
 			resultMap.put("statusCode", 200);
 			resultMap.put("message", "Hello from Lambda");
+			System.out.println("Usao u 200");
 		} else {
+			System.out.println("Usao u 400");
 			resultMap.put("statusCode", 400);
 			resultMap.put("message", "Bad request syntax or unsupported method. Request path: " + path + ". HTTP method: " + method);
 		}
