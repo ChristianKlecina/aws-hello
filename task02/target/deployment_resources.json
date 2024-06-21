@@ -1,6 +1,6 @@
 {
-  "hello_world-test" : {
-    "name" : "hello_world-test",
+  "hello_world" : {
+    "name" : "hello_world",
     "lambda_path" : "C:\\Users\\Christian\\Desktop\\aws\\aws-hello\\task02",
     "version" : "1.0.0",
     "func_name" : "com.task02.HelloWorld",
