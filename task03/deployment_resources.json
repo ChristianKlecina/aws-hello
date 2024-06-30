@@ -38,8 +38,20 @@
     "dependencies": [],
     "resources": {
       "/hello": {
-        "enable_cors": true
+        "enable_cors": true,
+        "GET": {
+          "authorization_type": "NONE",
+          "integration_type": "lambda",
+          "lambda_name": "hello_world",
+          "api_key_required": false,
+          "method_request_parameters": {},
+          "integration_request_body_template": {},
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true
+        }
       }
-    }
+    },
+    "minimum_compression_size": 0
   }
 }
