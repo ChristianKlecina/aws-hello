@@ -29,7 +29,7 @@
       "region" : "${region}",
       "table" : "${target_table}"
     },
-    "publish_version" : true,
+    "publish_version" : false,
     "snap_start" : "None",
     "url_config" : {
       "auth_type" : "NONE",

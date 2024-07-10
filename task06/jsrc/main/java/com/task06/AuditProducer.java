@@ -55,15 +55,13 @@ public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,O
 
 		LambdaLogger lambdaLogger = context.getLogger();
 
-		List<DynamodbEvent.DynamodbStreamRecord> dynamodbStreamRecords = request.getRecords();
-		String key;
-		String newValue;
-		String oldValue;
-		for(DynamodbEvent.DynamodbStreamRecord record: dynamodbStreamRecords){
+		//List<DynamodbEvent.DynamodbStreamRecord> dynamodbStreamRecords = request.getRecords();
+
+		for(DynamodbEvent.DynamodbStreamRecord record : request.getRecords()){
 			lambdaLogger.log(record.toString());
-			key = record.getDynamodb().getOldImage().get("key").getS();
-			newValue = record.getDynamodb().getNewImage().get("value").getN();
-			oldValue = record.getDynamodb().getOldImage().get("value").getN();
+			String key = record.getDynamodb().getOldImage().get("key").getS();
+			String newValue = record.getDynamodb().getNewImage().get("value").getN();
+			String oldValue = record.getDynamodb().getOldImage().get("value").getN();
 			Item auditItem;
 			if(record.getDynamodb().getOldImage().isEmpty()){
 				auditItem = new Item()
