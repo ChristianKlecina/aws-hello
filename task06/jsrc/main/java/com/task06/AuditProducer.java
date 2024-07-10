@@ -49,8 +49,6 @@ import java.util.UUID;
 @DynamoDbTriggerEventSource(targetTable = "Configuration", batchSize = 10)
 public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,Object>> {
 
-	private final ObjectMapper objectMapper = new ObjectMapper();
-
 	public Map<String,Object> handleRequest(DynamodbEvent request, Context context) {
 
 		LambdaLogger lambdaLogger = context.getLogger();
@@ -62,22 +60,25 @@ public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,O
 			String key = record.getDynamodb().getOldImage().get("key").getS();
 			String newValue = record.getDynamodb().getNewImage().get("value").getN();
 			String oldValue = record.getDynamodb().getOldImage().get("value").getN();
-			Item auditItem;
-			if(record.getDynamodb().getOldImage().isEmpty()){
-				auditItem = new Item()
-						.withPrimaryKey("id", UUID.randomUUID().toString())
-						.withString("itemKey", key)
-						.withString("modificationTime", Instant.now().toString())
-						.withMap("newValue", Map.of("key", key, "value", newValue));
 
+			if(record.getDynamodb().getOldImage().isEmpty()){
+				Item auditItem = new Item()
+						.with("id", UUID.randomUUID().toString())
+						.with("itemKey", key)
+						.with("modificationTime", Instant.now().toString())
+						.with("newValue", Map.of("key", key, "value", newValue));
+						dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
 			} else {
-				auditItem = new Item()
-						.withPrimaryKey("id", UUID.randomUUID().toString())
-						.withString("itemKey", key)
-						.withString("modificationTime", Instant.now().toString())
-						.withMap("newValue", Map.of("key", key, "value", oldValue));
+				Item auditItem = new Item()
+						.with("id", UUID.randomUUID().toString())
+						.with("itemKey", key)
+						.with("modificationTime", Instant.now().toString())
+						.with("updatedAttribute", "value")
+						.with("oldValue", Integer.valueOf(record.getDynamodb().getOldImage().get("value").getN()))
+						.with("newValue", newValue);
+						dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
 			}
-			dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
+
 		}
 
 		return null;
