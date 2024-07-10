@@ -58,25 +58,31 @@ public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,O
 		List<DynamodbEvent.DynamodbStreamRecord> dynamodbStreamRecords = request.getRecords();
 		String key;
 		String newValue;
+		String oldValue;
 		for(DynamodbEvent.DynamodbStreamRecord record: dynamodbStreamRecords){
 			lambdaLogger.log(record.toString());
 			key = record.getDynamodb().getOldImage().get("key").getS();
 			newValue = record.getDynamodb().getNewImage().get("value").getN();
-
+			oldValue = record.getDynamodb().getOldImage().get("value").getN();
+			Item auditItem;
 			if(record.getDynamodb().getOldImage().isEmpty()){
-				Item auditItem = new Item()
+				auditItem = new Item()
 						.withPrimaryKey("id", UUID.randomUUID().toString())
 						.withString("itemKey", key)
 						.withString("modificationTime", Instant.now().toString())
 						.withMap("newValue", Map.of("key", key, "value", newValue));
-				dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
+
+			} else {
+				auditItem = new Item()
+						.withPrimaryKey("id", UUID.randomUUID().toString())
+						.withString("itemKey", key)
+						.withString("modificationTime", Instant.now().toString())
+						.withMap("newValue", Map.of("key", key, "value", oldValue));
 			}
+			dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
 		}
 
-		Map<String, Object> resultMap = new HashMap<String, Object>();
-		resultMap.put("statusCode", 200);
-		resultMap.put("body", "Hello from Lambda");
-		return resultMap;
+		return null;
 	}
 
 	private void dynamoDbSave(Map<String, AttributeValue> items){
