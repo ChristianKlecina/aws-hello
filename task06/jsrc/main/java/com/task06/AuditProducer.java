@@ -35,7 +35,7 @@ import java.util.UUID;
 
 @LambdaHandler(lambdaName = "audit_producer",
 		roleName = "audit_producer-role",
-		isPublishVersion = true
+		isPublishVersion = false
 )
 @LambdaUrlConfig(
 		authType = AuthType.NONE,
