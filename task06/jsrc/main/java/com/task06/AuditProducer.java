@@ -21,6 +21,7 @@ import com.syndicate.deployment.annotations.events.DynamoDbTriggerEventSource;
 import com.syndicate.deployment.annotations.lambda.LambdaHandler;
 import com.syndicate.deployment.annotations.lambda.LambdaUrlConfig;
 import com.syndicate.deployment.annotations.resources.DependsOn;
+import com.syndicate.deployment.model.DeploymentRuntime;
 import com.syndicate.deployment.model.ResourceType;
 import com.amazonaws.services.dynamodbv2.document.Item;
 
@@ -35,13 +36,9 @@ import java.util.UUID;
 
 @LambdaHandler(lambdaName = "audit_producer",
 		roleName = "audit_producer-role",
-		isPublishVersion = false
+		isPublishVersion = false,
+		runtime = DeploymentRuntime.JAVA11
 )
-@LambdaUrlConfig(
-		authType = AuthType.NONE,
-		invokeMode = InvokeMode.BUFFERED
-)
-@DependsOn(name = "Audit", resourceType = ResourceType.DYNAMODB_TABLE)
 @DependsOn(name = "Configuration", resourceType = ResourceType.DYNAMODB_TABLE)
 @EnvironmentVariables(value = {
 		@EnvironmentVariable(key = "region", value = "${region}"),
@@ -57,18 +54,18 @@ public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,O
 
 		for(DynamodbEvent.DynamodbStreamRecord record : request.getRecords()){
 			lambdaLogger.log(record.toString());
-			String key = record.getDynamodb().getOldImage().get("key").getS();
+			String key = record.getDynamodb().getNewImage().get("key").getS();
 			String newValue = record.getDynamodb().getNewImage().get("value").getN();
-			String oldValue = record.getDynamodb().getOldImage().get("value").getN();
 
-			if(record.getDynamodb().getOldImage().isEmpty()){
+			if("INSERT".equals(record.getEventName())){
 				Item auditItem = new Item()
 						.with("id", UUID.randomUUID().toString())
 						.with("itemKey", key)
 						.with("modificationTime", Instant.now().toString())
 						.with("newValue", Map.of("key", key, "value", newValue));
 						dynamoDbSave(ItemUtils.toAttributeValues(auditItem));
-			} else {
+			}
+			if("MODIFY".equals(record.getEventName())) {
 				Item auditItem = new Item()
 						.with("id", UUID.randomUUID().toString())
 						.with("itemKey", key)
