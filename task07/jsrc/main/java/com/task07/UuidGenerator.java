@@ -5,6 +5,8 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.syndicate.deployment.annotations.events.RuleEventSource;
+import com.syndicate.deployment.annotations.events.RuleEvents;
 import com.syndicate.deployment.annotations.events.S3EventSource;
 import com.syndicate.deployment.annotations.events.S3Events;
 import com.syndicate.deployment.annotations.lambda.LambdaHandler;
@@ -25,6 +27,8 @@ import java.util.*;
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
 @DependsOn(name = "uuid_trigger", resourceType = ResourceType.CLOUDWATCH_RULE)
+@DependsOn(name = "uuid-storage", resourceType = ResourceType.S3_BUCKET)
+@RuleEventSource(targetRule = "uuid_trigger")
 public class UuidGenerator implements RequestHandler<Object, String> {
 
 	private static final String BUCKET_NAME = "uuid-storage";
