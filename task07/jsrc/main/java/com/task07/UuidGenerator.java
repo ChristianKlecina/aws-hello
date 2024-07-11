@@ -22,7 +22,7 @@ import java.util.*;
 	runtime = DeploymentRuntime.JAVA11,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
-@S3EventSource(targetBucket = "uuid-storage", events = "s3:*")
+//@S3EventSource(targetBucket = "uuid-storage", events = "s3:*")
 
 public class UuidGenerator implements RequestHandler<Object, String> {
 
