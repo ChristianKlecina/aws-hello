@@ -5,6 +5,8 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.syndicate.deployment.annotations.events.S3EventSource;
+import com.syndicate.deployment.annotations.events.S3Events;
 import com.syndicate.deployment.annotations.lambda.LambdaHandler;
 import com.syndicate.deployment.model.DeploymentRuntime;
 import com.syndicate.deployment.model.RetentionSetting;
@@ -20,6 +22,8 @@ import java.util.*;
 	runtime = DeploymentRuntime.JAVA11,
 	logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED
 )
+@S3EventSource(targetBucket = "uuid-storage", events = "s3:PutObject")
+
 public class UuidGenerator implements RequestHandler<Object, String> {
 
 	private static final String BUCKET_NAME = "uuid-storage";
