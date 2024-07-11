@@ -36,7 +36,7 @@ import java.util.*;
 public class UuidGenerator implements RequestHandler<Object, String> {
 
 	private static final String BUCKET_NAME = "uuid-storage";
-	private final AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard().withRegion(System.getenv("region")).build();
+	private final AmazonS3 amazonS3Client = AmazonS3Client.builder().withRegion(System.getenv("region")).build();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public String handleRequest(Object request, Context context) {
