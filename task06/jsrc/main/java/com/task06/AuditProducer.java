@@ -55,7 +55,7 @@ public class AuditProducer implements RequestHandler<DynamodbEvent, Map<String,O
 		for(DynamodbEvent.DynamodbStreamRecord record : request.getRecords()){
 			lambdaLogger.log(record.toString());
 			String key = record.getDynamodb().getNewImage().get("key").getS();
-			String newValue = record.getDynamodb().getNewImage().get("value").getN();
+			Integer newValue = Integer.valueOf(record.getDynamodb().getNewImage().get("value").getN());
 
 			if("INSERT".equals(record.getEventName())){
 				Item auditItem = new Item()
