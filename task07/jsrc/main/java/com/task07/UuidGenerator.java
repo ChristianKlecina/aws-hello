@@ -5,6 +5,8 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.syndicate.deployment.annotations.environment.EnvironmentVariable;
+import com.syndicate.deployment.annotations.environment.EnvironmentVariables;
 import com.syndicate.deployment.annotations.events.RuleEventSource;
 import com.syndicate.deployment.annotations.events.RuleEvents;
 import com.syndicate.deployment.annotations.events.S3EventSource;
@@ -29,10 +31,12 @@ import java.util.*;
 @DependsOn(name = "uuid_trigger", resourceType = ResourceType.CLOUDWATCH_RULE)
 @DependsOn(name = "uuid-storage", resourceType = ResourceType.S3_BUCKET)
 @RuleEventSource(targetRule = "uuid_trigger")
+@EnvironmentVariables(value = {
+		@EnvironmentVariable(key = "region", value = "${region}")})
 public class UuidGenerator implements RequestHandler<Object, String> {
 
 	private static final String BUCKET_NAME = "uuid-storage";
-	private final AmazonS3 amazonS3Client = AmazonS3ClientBuilder.defaultClient();
+	private final AmazonS3 amazonS3Client = AmazonS3ClientBuilder.standard().withRegion(System.getenv("region")).build();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public String handleRequest(Object request, Context context) {
