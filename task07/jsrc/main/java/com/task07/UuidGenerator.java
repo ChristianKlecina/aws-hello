@@ -35,11 +35,12 @@ import java.util.*;
 @DependsOn(name = "uuid-storage", resourceType = ResourceType.S3_BUCKET)
 @RuleEventSource(targetRule = "uuid_trigger")
 @EnvironmentVariables(value = {
-		@EnvironmentVariable(key = "region", value = "${region}")})
+		@EnvironmentVariable(key = "region", value = "${region}"),
+		@EnvironmentVariable(key = "bucket", value = "${target_bucket}")})
 public class UuidGenerator implements RequestHandler<Object, String> {
 
 	Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	private static final String BUCKET_NAME = "uuid-storage";
+
 	private final AmazonS3 amazonS3Client = AmazonS3Client.builder().withRegion(System.getenv("region")).build();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,7 +52,8 @@ public class UuidGenerator implements RequestHandler<Object, String> {
 		logger.log(fileName);
 		String fileContent = createFileContent(uuids);
 		logger.log(fileContent);
-		uploadToS3(BUCKET_NAME, fileName, fileContent);
+		logger.log(System.getenv("bucket"));
+		uploadToS3(System.getenv("bucket"), fileName, fileContent);
 		return "Success";
 	}
 
