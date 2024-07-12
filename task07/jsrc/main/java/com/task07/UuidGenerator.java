@@ -49,10 +49,10 @@ public class UuidGenerator implements RequestHandler<Object, String> {
 		List<String> uuids = generateUUIDs(10);
 
 		String fileName = getCurrentIsoTime();
-		logger.log(fileName);
+		//logger.log(fileName);
 		String fileContent = createFileContent(uuids);
-		logger.log(fileContent);
-		logger.log(System.getenv("bucket"));
+		//logger.log(fileContent);
+		//logger.log(System.getenv("bucket"));
 		uploadToS3(System.getenv("bucket"), fileName, fileContent);
 		return "Success";
 	}
