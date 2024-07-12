@@ -1,10 +1,13 @@
 package com.task07;
 
 import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.syndicate.deployment.annotations.environment.EnvironmentVariable;
 import com.syndicate.deployment.annotations.environment.EnvironmentVariables;
 import com.syndicate.deployment.annotations.events.RuleEventSource;
@@ -35,24 +38,23 @@ import java.util.*;
 		@EnvironmentVariable(key = "region", value = "${region}")})
 public class UuidGenerator implements RequestHandler<Object, String> {
 
+	Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private static final String BUCKET_NAME = "uuid-storage";
 	private final AmazonS3 amazonS3Client = AmazonS3Client.builder().withRegion(System.getenv("region")).build();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public String handleRequest(Object request, Context context) {
-
+		LambdaLogger logger = context.getLogger();
 		List<String> uuids = generateUUIDs(10);
-
+		for(int i = 0; i< 10; i++){
+			logger.log(gson.toJson(uuids.get(i)));
+		}
 		String fileName = getCurrentIsoTime();
+		logger.log(fileName);
 		String fileContent = createFileContent(uuids);
+		logger.log(fileContent);
 		uploadToS3(BUCKET_NAME, fileName, fileContent);
 		return "Success";
-
-//		System.out.println("Hello from lambda");
-//		Map<String, Object> resultMap = new HashMap<String, Object>();
-//		resultMap.put("statusCode", 200);
-//		resultMap.put("body", "Hello from Lambda");
-
 	}
 
 	public List<String> generateUUIDs(int count){
@@ -64,6 +66,7 @@ public class UuidGenerator implements RequestHandler<Object, String> {
 	}
 
 	private void uploadToS3(String bucketName, String fileName, String content) {
+
 		amazonS3Client.putObject(bucketName, fileName, content);
 	}
 
