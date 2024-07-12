@@ -46,9 +46,7 @@ public class UuidGenerator implements RequestHandler<Object, String> {
 	public String handleRequest(Object request, Context context) {
 		LambdaLogger logger = context.getLogger();
 		List<String> uuids = generateUUIDs(10);
-		for(int i = 0; i< 10; i++){
-			logger.log(gson.toJson(uuids.get(i)));
-		}
+
 		String fileName = getCurrentIsoTime();
 		logger.log(fileName);
 		String fileContent = createFileContent(uuids);
