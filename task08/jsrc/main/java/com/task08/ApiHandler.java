@@ -25,7 +25,7 @@ import java.util.Map;
 )
 @LambdaLayer(
 		layerName = "sdk-layer",
-		libraries = {"lib/weather-forecast-1.0-SNAPSHOT.jar"},
+		libraries = {"lib/meteo_api-1.0-SNAPSHOT.jar"},
 		runtime = DeploymentRuntime.JAVA11,
 		architectures = {Architecture.ARM64},
 		artifactExtension = ArtifactExtension.ZIP
@@ -38,31 +38,38 @@ public class ApiHandler implements RequestHandler<Object, String> {
 
 	public String handleRequest(Object request, Context context) {
 
-		WeatherForecast weatherForecast = new WeatherForecast();
-        try {
-            String weather = weatherForecast.getWeather();
-			return weather;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+		Map<String, Object> resultMap = new HashMap<>();
+		try {
+			WeatherService weatherService = new WeatherService();
+			String forecastString = weatherService.getWeatherForecast();
+			System.err.println(forecastString);
+			return forecastString.replaceAll("\\\"", "\"");
+
+		} catch (IOException | InterruptedException e) {
+			resultMap.put("statusCode", 200);
+			resultMap.put("body", e.getMessage());
+		}
 
 
-//        System.out.println("Hello from lambda");
-//		Map<String, Object> resultMap = new HashMap<String, Object>();
-//		resultMap.put("statusCode", 200);
-//		resultMap.put("body", "Hello from Lambda");
-		//return "resultMap";
+//		WeatherForecast weatherForecast = new WeatherForecast();
+////        try {
+////            String weather = weatherForecast.getWeather();
+////			return weather;
+////        } catch (Exception e) {
+////            throw new RuntimeException(e);
+////        }
+//
 //		Map<String, Object> resultMap = new HashMap<>();
 //		try {
-//			WeatherService weatherService = new WeatherService();
-//			String forecastString = weatherService.getWeatherForecast();
-//			System.err.println(forecastString);
-//			return forecastString.replaceAll("\\\"", "\"");
+//			String weather = weatherForecast.getWeather();
+//			System.err.println(weatherForecast);
+//			return weather.replaceAll("\\\"", "\"");
 //
-//		} catch (IOException | InterruptedException e) {
+//		} catch (Exception e) {
 //			resultMap.put("statusCode", 200);
 //			resultMap.put("body", e.getMessage());
 //		}
-//		return "";
+		return "";
 	}
+
 }

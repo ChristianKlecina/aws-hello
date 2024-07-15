@@ -34,10 +34,11 @@
 
         <dependency>
             <groupId>com.task08</groupId>
-            <artifactId>weather-forecast</artifactId>
+            <artifactId>meteo_api</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/weather-forecast-1.0-SNAPSHOT.jar</systemPath>
+            <systemPath>${basedir}/lib/meteo_api-1.0-SNAPSHOT.jar</systemPath>
+
         </dependency>
 
     </dependencies>
