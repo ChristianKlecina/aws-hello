@@ -21,34 +21,34 @@ import java.util.Map;
 		roleName = "api_handler-role",
 		isPublishVersion = false
 )
-//@LambdaLayer(
-//		layerName = "sdk-layer",
-//		libraries = {"lib/weather-forecast-1.0-SNAPSHOT.jar"},
-//		runtime = DeploymentRuntime.JAVA11,
-//		architectures = {Architecture.ARM64},
-//		artifactExtension = ArtifactExtension.ZIP
-//)
-//@LambdaUrlConfig(
-//		authType = AuthType.NONE,
-//		invokeMode = InvokeMode.BUFFERED
-//)
+@LambdaLayer(
+		layerName = "sdk-layer",
+		libraries = {"lib/weather-forecast-1.0-SNAPSHOT.jar"},
+		runtime = DeploymentRuntime.JAVA11,
+		architectures = {Architecture.ARM64},
+		artifactExtension = ArtifactExtension.ZIP
+)
+@LambdaUrlConfig(
+		authType = AuthType.NONE,
+		invokeMode = InvokeMode.BUFFERED
+)
 public class ApiHandler implements RequestHandler<Object, String> {
 
 	public String handleRequest(Object request, Context context) {
 
-//		WeatherForecast weatherForecast = new WeatherForecast();
-//        try {
-//            String weather = weatherForecast.getWeather();
-//			return weather.replaceAll("\\\"", "\"");
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
+		WeatherForecast weatherForecast = new WeatherForecast();
+        try {
+            String weather = weatherForecast.getWeather();
+			return weather.replaceAll("\\\"", "\"");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
 
 //        System.out.println("Hello from lambda");
 //		Map<String, Object> resultMap = new HashMap<String, Object>();
 //		resultMap.put("statusCode", 200);
 //		resultMap.put("body", "Hello from Lambda");
-		return "resultMap";
+		//return "resultMap";
 	}
 }
