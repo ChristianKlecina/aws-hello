@@ -24,7 +24,7 @@ import java.util.Map;
 )
 @LambdaLayer(
 		layerName = "sdk-layer",
-		libraries = {"lib/meteo_api-1.0-SNAPSHOT.jar"},
+		libraries = {"lib/weather-forecast-1.0-SNAPSHOT.jar"},
 		runtime = DeploymentRuntime.JAVA11,
 		architectures = {Architecture.ARM64},
 		artifactExtension = ArtifactExtension.ZIP
