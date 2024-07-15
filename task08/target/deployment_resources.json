@@ -16,9 +16,20 @@
     "dependencies" : [ ],
     "event_sources" : [ ],
     "env_variables" : { },
-    "publish_version" : true,
-    "alias" : "${lambdas_alias_name}",
-    "logs_expiration" : "${logs_expiration}",
-    "snap_start" : "None"
+    "publish_version" : false,
+    "layers" : [ "sdk-layer" ],
+    "snap_start" : "None",
+    "url_config" : {
+      "auth_type" : "NONE",
+      "invoke_mode" : "BUFFERED"
+    }
+  },
+  "sdk-layer" : {
+    "name" : "sdk-layer",
+    "runtimes" : [ "java11" ],
+    "resource_type" : "lambda_layer",
+    "deployment_package" : "sdk-layer-assembly.zip",
+    "libraries" : [ "lib/weather-forecast-1.0-SNAPSHOT.jar" ],
+    "architectures" : [ "arm64" ]
   }
 }

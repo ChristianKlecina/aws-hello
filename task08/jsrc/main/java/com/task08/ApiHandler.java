@@ -11,15 +11,17 @@ import com.syndicate.deployment.model.DeploymentRuntime;
 import com.syndicate.deployment.model.RetentionSetting;
 import com.syndicate.deployment.model.lambda.url.AuthType;
 import com.syndicate.deployment.model.lambda.url.InvokeMode;
-import task08.WeatherForecast;
 
 
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 @LambdaHandler(lambdaName = "api_handler",
 		roleName = "api_handler-role",
-		isPublishVersion = false
+		isPublishVersion = false,
+		layers = {"sdk-layer"}
 )
 @LambdaLayer(
 		layerName = "sdk-layer",
@@ -39,7 +41,7 @@ public class ApiHandler implements RequestHandler<Object, String> {
 		WeatherForecast weatherForecast = new WeatherForecast();
         try {
             String weather = weatherForecast.getWeather();
-			return weather.replaceAll("\\\"", "\"");
+			return weather;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -50,5 +52,17 @@ public class ApiHandler implements RequestHandler<Object, String> {
 //		resultMap.put("statusCode", 200);
 //		resultMap.put("body", "Hello from Lambda");
 		//return "resultMap";
+//		Map<String, Object> resultMap = new HashMap<>();
+//		try {
+//			WeatherService weatherService = new WeatherService();
+//			String forecastString = weatherService.getWeatherForecast();
+//			System.err.println(forecastString);
+//			return forecastString.replaceAll("\\\"", "\"");
+//
+//		} catch (IOException | InterruptedException e) {
+//			resultMap.put("statusCode", 200);
+//			resultMap.put("body", e.getMessage());
+//		}
+//		return "";
 	}
 }
