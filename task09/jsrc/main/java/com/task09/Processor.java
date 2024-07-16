@@ -40,27 +40,34 @@ public class Processor implements RequestHandler<Object, Map<String, Object>> {
 		Map<String, Object> weatherResponse = new HashMap<String, Object>();
 		String id = UUID.randomUUID().toString();
 
+		Map<String, Object> hourly = (Map<String, Object>) weatherAPIReader.readWeatherAPI().get("hourly");
+		hourly.remove("wind_speed_10m");
+		hourly.remove("interval");
+		hourly.remove("relative_humidity_2m");
+		Map<String, Object> hourly_units = (Map<String, Object>) weatherAPIReader.readWeatherAPI().get("hourly_units");
+		hourly_units.remove("wind_speed_10m");
+		hourly_units.remove("interval");
+		hourly_units.remove("relative_humidity_2m");
+
 		weatherResponse.put("id", id);
 
 		Map<String, Object> forecastObj = new HashMap<>();
 
 		forecastObj.put("elevation", weatherAPIReader.readWeatherAPI().get("elevation"));
 		forecastObj.put("generationtime_ms", weatherAPIReader.readWeatherAPI().get("generationtime_ms"));
+		forecastObj.put("hourly", hourly);
+		forecastObj.put("hourly_units", hourly_units);
 		forecastObj.put("latitude", weatherAPIReader.readWeatherAPI().get("latitude"));
 		forecastObj.put("longitude", weatherAPIReader.readWeatherAPI().get("longitude"));
 		forecastObj.put("timezone", weatherAPIReader.readWeatherAPI().get("timezone"));
 		forecastObj.put("timezone_abbreviation", weatherAPIReader.readWeatherAPI().get("timezone_abbreviation"));
 		forecastObj.put("utc_offset_seconds", weatherAPIReader.readWeatherAPI().get("utc_offset_seconds"));
 
-		Map<String, Object> hourly = (Map<String, Object>) weatherAPIReader.readWeatherAPI().get("hourly");
-		hourly.remove("wind_speed_10m");
-		hourly.remove("interval");
-		Map<String, Object> hourly_units = (Map<String, Object>) weatherAPIReader.readWeatherAPI().get("hourly_units");
-		hourly_units.remove("wind_speed_10m");
-		hourly_units.remove("interval");
 
-		forecastObj.put("hourly", hourly);
-		forecastObj.put("hourly_units", hourly_units);
+
+
+
+
 
 		weatherResponse.put("forecast", forecastObj);
 
