@@ -8,9 +8,6 @@
             "logs:CreateLogStream",
             "logs:PutLogEvents",
             "dynamodb:*",
-            "ssm:PutParameter",
-            "ssm:GetParameter",
-            "kms:Decrypt",
             "cognito-idp:*"
           ],
           "Effect": "Allow",
@@ -28,24 +25,6 @@
       "lambda-basic-execution"
     ],
     "resource_type": "iam_role"
-  },
-  "${tables_table}": {
-    "resource_type": "dynamodb_table",
-    "hash_key_name": "id",
-    "hash_key_type": "S",
-    "read_capacity": 1,
-    "write_capacity": 1,
-    "global_indexes": [],
-    "autoscaling": []
-  },
-  "${reservations_table}": {
-    "resource_type": "dynamodb_table",
-    "hash_key_name": "id",
-    "hash_key_type": "S",
-    "read_capacity": 1,
-    "write_capacity": 1,
-    "global_indexes": [],
-    "autoscaling": []
   },
   "${booking_userpool}": {
     "resource_type": "cognito_idp",
@@ -76,20 +55,6 @@
     "deploy_stage": "api",
     "dependencies": [],
     "resources": {
-      "/signup": {
-        "enable_cors": true,
-        "POST": {
-          "authorization_type": "NONE",
-          "integration_type": "lambda",
-          "lambda_name": "api_handler",
-          "api_key_required": false,
-          "method_request_parameters": {},
-          "integration_request_body_template": {},
-          "responses": [],
-          "integration_responses": [],
-          "default_error_pattern": true
-        }
-      },
       "/signin": {
         "enable_cors": true,
         "POST": {
@@ -101,11 +66,39 @@
           "integration_request_body_template": {},
           "responses": [],
           "integration_responses": [],
-          "default_error_pattern": true
+          "default_error_pattern": true,
+          "enable_proxy": true
+        }
+      },
+      "/signup": {
+        "enable_cors": true,
+        "POST": {
+          "authorization_type": "NONE",
+          "integration_type": "lambda",
+          "lambda_name": "api_handler",
+          "api_key_required": false,
+          "method_request_parameters": {},
+          "integration_request_body_template": {},
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true,
+          "enable_proxy": true
         }
       },
       "/tables": {
         "enable_cors": true,
+        "GET": {
+          "authorization_type": "authorizer",
+          "integration_type": "lambda",
+          "lambda_name": "api_handler",
+          "api_key_required": false,
+          "method_request_parameters": {},
+          "integration_request_body_template": {},
+          "responses": [],
+          "integration_responses": [],
+          "default_error_pattern": true,
+          "enable_proxy": true
+        },
         "POST": {
           "authorization_type": "authorizer",
           "integration_type": "lambda",
@@ -115,33 +108,23 @@
           "integration_request_body_template": {},
           "responses": [],
           "integration_responses": [],
-          "default_error_pattern": true
-        },
-        "GET": {
-          "authorization_type": "authorizer",
-          "integration_type": "lambda",
-          "lambda_name": "api_handler",
-          "api_key_required": false,
-          "method_request_parameters": {},
-          "integration_request_body_template": {},
-          "responses": [],
-          "integration_responses": [],
-          "default_error_pattern": true
+          "default_error_pattern": true,
+          "enable_proxy": true
         }
       },
       "/tables/{tableId}": {
-        "enable_cors": false,
+        "enable_cors": true,
         "GET": {
           "authorization_type": "authorizer",
           "integration_type": "lambda",
           "lambda_name": "api_handler",
-          "enable_proxy": true,
           "api_key_required": false,
           "method_request_parameters": {},
           "integration_request_body_template": {},
           "responses": [],
           "integration_responses": [],
-          "default_error_pattern": true
+          "default_error_pattern": true,
+          "enable_proxy": true
         }
       },
       "/reservations": {
@@ -155,7 +138,8 @@
           "integration_request_body_template": {},
           "responses": [],
           "integration_responses": [],
-          "default_error_pattern": true
+          "default_error_pattern": true,
+          "enable_proxy": true
         },
         "POST": {
           "authorization_type": "authorizer",
@@ -166,20 +150,38 @@
           "integration_request_body_template": {},
           "responses": [],
           "integration_responses": [],
-          "default_error_pattern": true
+          "default_error_pattern": true,
+          "enable_proxy": true
         }
       }
     },
-    "minimum_compression_size": 0,
     "authorizers": {
       "authorizer": {
         "type": "COGNITO_USER_POOLS",
         "identity_source": "method.request.header.Authorization",
         "ttl": 300,
         "user_pools": [
-          "simple-booking-userpool"
+          "${booking_userpool}"
         ]
       }
     }
+  },
+  "${tables_table}": {
+    "resource_type": "dynamodb_table",
+    "hash_key_name": "id",
+    "hash_key_type": "S",
+    "read_capacity": 1,
+    "write_capacity": 1,
+    "global_indexes": [],
+    "autoscaling": []
+  },
+  "${reservations_table}": {
+    "resource_type": "dynamodb_table",
+    "hash_key_name": "id",
+    "hash_key_type": "S",
+    "read_capacity": 1,
+    "write_capacity": 1,
+    "global_indexes": [],
+    "autoscaling": []
   }
 }
