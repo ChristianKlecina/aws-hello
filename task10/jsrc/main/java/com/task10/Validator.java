@@ -2,7 +2,7 @@ package com.task10;
 
 import java.util.regex.Pattern;
 
-public class InputValidator {
+public class Validator {
 
     public static boolean isValidEmail(String email) {
         boolean isValid = validateEmail(email);
