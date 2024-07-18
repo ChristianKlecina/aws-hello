@@ -1,0 +1,38 @@
+{
+  "api_handler" : {
+    "name" : "api_handler",
+    "lambda_path" : "C:\\Users\\Christian\\Desktop\\aws\\novi novi\\aws-hello\\task10",
+    "version" : "1.0.0",
+    "func_name" : "com.task10.ApiHandler",
+    "deployment_package" : "task10-1.0.0.jar",
+    "resource_type" : "lambda",
+    "runtime" : "java11",
+    "architectures" : [ "x86_64" ],
+    "iam_role_name" : "api_handler-role",
+    "memory" : 1024,
+    "timeout" : 300,
+    "subnet_ids" : [ ],
+    "security_group_ids" : [ ],
+    "dependencies" : [ {
+      "resource_name" : "Reservations",
+      "resource_type" : "dynamodb_table"
+    }, {
+      "resource_name" : "Tables",
+      "resource_type" : "dynamodb_table"
+    } ],
+    "event_sources" : [ ],
+    "env_variables" : {
+      "bookingUserPool" : "${booking_userpool}",
+      "region" : "${region}",
+      "tablesTable" : "${tables_table}",
+      "reservationsTable" : "${reservations_table}"
+    },
+    "publish_version" : false,
+    "logs_expiration" : "${logs_expiration}",
+    "snap_start" : "None",
+    "url_config" : {
+      "auth_type" : "NONE",
+      "invoke_mode" : "BUFFERED"
+    }
+  }
+}
