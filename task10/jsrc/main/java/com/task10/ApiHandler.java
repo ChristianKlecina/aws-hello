@@ -113,13 +113,8 @@ public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGate
 			String email = String.valueOf(body.get("email"));
 			String password = String.valueOf(body.get("password"));
 
-			if(!EmailValidator.validateEmail(email)){
-				throw new Exception("Email is invalid");
-			}
-
-			if(!PasswordValidator.validatePassword(password)){
-				throw new Exception("Password is invalid");
-			}
+			InputValidator.isValidEmail(email);
+			InputValidator.isValidPassword(password);
 
 			String userPoolId = String.valueOf(getUserPoolIdByName(System.getenv("bookingUserPool")));
 
@@ -160,13 +155,9 @@ public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGate
 			String email = String.valueOf(body.get("email"));
 			String password = String.valueOf(body.get("password"));
 
-			if(!EmailValidator.validateEmail(email)){
-				throw new Exception("Email is invalid");
-			}
+			InputValidator.isValidEmail(email);
+			InputValidator.isValidPassword(password);
 
-			if(!PasswordValidator.validatePassword(password)){
-				throw new Exception("Password is invalid");
-			}
 			String userPoolId = String.valueOf(getUserPoolIdByName(System.getenv("bookingUserPool")));
 			String clientId = String.valueOf(getClientIdByUserPoolName(System.getenv("bookingUserPool")));
 
