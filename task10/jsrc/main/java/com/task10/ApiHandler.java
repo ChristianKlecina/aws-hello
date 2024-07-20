@@ -27,6 +27,7 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
+import java.time.LocalTime;
 import java.util.*;
 
 @LambdaHandler(lambdaName = "api_handler",
@@ -379,6 +380,22 @@ public class ApiHandler implements RequestHandler<APIGatewayProxyRequestEvent, A
 
 
             System.err.println(item);
+
+            if (!tableExists(ddb,System.getenv("tablesTable"), tableNumber)) {
+                response.setStatusCode(400);
+                response.setBody("Table does not exist");
+                System.err.println("Table does not exist");
+                return response;
+            }
+
+            if (isOverlappingReservation(ddb,System.getenv("reservationsTable"), tableNumber, date, slotTimeStart, slotTimeEnd)) {
+                response.setStatusCode(400);
+                response.setBody("Reservation overlaps with an existing reservation");
+                System.err.println("Reservation overlaps with an existing reservation");
+                return response;
+            }
+
+
 			ddb.putItem(System.getenv("reservationsTable"), ItemUtils.toAttributeValues(item));
 
 			Map<String, Object> jsonResponse = new HashMap<>();
@@ -432,5 +449,44 @@ public class ApiHandler implements RequestHandler<APIGatewayProxyRequestEvent, A
             response.setStatusCode(400);
         }
         return response;
+    }
+
+    public boolean tableExists(AmazonDynamoDB ddb, String tableName, String tableNumber) {
+        ScanResult scanResult = ddb.scan(new ScanRequest().withTableName(tableName));
+
+        for (Map<String, AttributeValue> item : scanResult.getItems()) {
+            if (tableNumber.equals(item.get("number").getN())) {
+                System.err.println("Table exists, number: " + tableNumber);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isOverlappingReservation(AmazonDynamoDB ddb,String tableName, String tableNumber, String date, String slotTimeStart, String slotTimeEnd) {
+        ScanResult scanResult = ddb.scan(new ScanRequest().withTableName(tableName));
+        for (Map<String, AttributeValue> item : scanResult.getItems()) {
+            String existingTableNumber = item.get("tableNumber").getS();
+            String existingDate = item.get("date").getS();
+
+            if (tableNumber.equals(existingTableNumber) && date.equals(existingDate)) {
+                String existingSlotTimeStart = item.get("slotTimeStart").getS();
+                String existingSlotTimeEnd = item.get("slotTimeEnd").getS();
+
+                return isTimeOverlap(slotTimeStart, slotTimeEnd, existingSlotTimeStart, existingSlotTimeEnd);
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isTimeOverlap(String slotTimeStart, String slotTimeEnd, String existingSlotTimeStart, String existingSlotTimeEnd) {
+
+        LocalTime start = LocalTime.parse(slotTimeStart);
+        LocalTime end = LocalTime.parse(slotTimeEnd);
+        LocalTime existingStart = LocalTime.parse(existingSlotTimeStart);
+        LocalTime existingEnd = LocalTime.parse(existingSlotTimeEnd);
+
+        return (start.isBefore(existingEnd) && end.isAfter(existingStart));
     }
 }
