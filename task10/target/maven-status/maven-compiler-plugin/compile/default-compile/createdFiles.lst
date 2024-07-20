@@ -1,3 +1,7 @@
+com\task10\CognitoHelper.class
 com\task10\ApiHandler.class
-com\task10\EmailValidator.class
+com\task10\DynamoDbUtils.class
+com\task10\HandlerUtils.class
 com\task10\PasswordValidator.class
+com\task10\CredentialsValidator.class
+com\task10\EmailValidator.class

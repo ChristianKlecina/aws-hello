@@ -2,7 +2,6 @@ package com.task10;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.ItemUtils;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
@@ -10,7 +9,6 @@ import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.ScanResult;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,43 +22,72 @@ import com.syndicate.deployment.model.ResourceType;
 import com.syndicate.deployment.model.RetentionSetting;
 import com.syndicate.deployment.model.lambda.url.AuthType;
 import com.syndicate.deployment.model.lambda.url.InvokeMode;
-import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
+import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
 import java.util.*;
 
 @LambdaHandler(lambdaName = "api_handler",
-		roleName = "api_handler-role",
-		isPublishVersion = false,
-		logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED,
-		runtime = DeploymentRuntime.JAVA11
+        roleName = "api_handler-role",
+        isPublishVersion = false,
+        logsExpiration = RetentionSetting.SYNDICATE_ALIASES_SPECIFIED,
+        runtime = DeploymentRuntime.JAVA11
 )
 @LambdaUrlConfig(
-		authType = AuthType.NONE,
-		invokeMode = InvokeMode.BUFFERED
+        authType = AuthType.NONE,
+        invokeMode = InvokeMode.BUFFERED
 )
 @DependsOn(name = "Tables", resourceType = ResourceType.DYNAMODB_TABLE)
 @DependsOn(name = "Reservations", resourceType = ResourceType.DYNAMODB_TABLE)
 @EnvironmentVariables(value = {
-		@EnvironmentVariable(key = "region", value = "${region}"),
-		@EnvironmentVariable(key = "tablesTable", value = "${tables_table}"),
-		@EnvironmentVariable(key = "reservationsTable", value = "${reservations_table}"),
-		@EnvironmentVariable(key = "bookingUserPool", value = "${booking_userpool}")
+        @EnvironmentVariable(key = "region", value = "${region}"),
+        @EnvironmentVariable(key = "tablesTable", value = "${tables_table}"),
+        @EnvironmentVariable(key = "reservationsTable", value = "${reservations_table}"),
+        @EnvironmentVariable(key = "bookingUserPool", value = "${booking_userpool}")
 })
-public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
+public class ApiHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-	private final CognitoIdentityProviderClient cognitoClient = CognitoIdentityProviderClient.builder()
-			.region(Region.of(System.getenv("region")))
-			.credentialsProvider(EnvironmentVariableCredentialsProvider.create())
-			.build();
+    private final CognitoIdentityProviderClient cognitoClient = CognitoIdentityProviderClient.create();
+
+    public APIGatewayProxyResponseEvent handleRequest(APIGatewayProxyRequestEvent event, Context context) {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, String> request = null;
+        try {
+            request = objectMapper.readValue(objectMapper.writeValueAsString(event), LinkedHashMap.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        String path = (String) request.get("path");
+        String method = (String) request.get("httpMethod");
 
 
-	public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent event, Context context) {
-		ObjectMapper objectMapper = new ObjectMapper();
-		String httpMethod = event.getRequestContext().getHttp().getMethod();
-		String path = event.getRawPath();
+        System.err.println("Path: " + path + " method: " + method);
+        try {
+            System.err.println("Request: " + objectMapper.writeValueAsString(event));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        if ("/signup".equals(path) && "POST".equalsIgnoreCase(method)) {
+            return signUp(event);
+        }
+
+        if ("/signin".equals(path) && "POST".equalsIgnoreCase(method)) {
+            return signIn(event);
+        }
+
+        if("/tables".equals(path) && "POST".equalsIgnoreCase(method)){
+			return postTable(event);
+		}
+
+        if("/tables".equals(path) && "GET".equalsIgnoreCase(method)){
+            return getTables();
+        }
 
         Map<String, Object> pathParameters = null;
         try {
@@ -68,278 +95,268 @@ public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGate
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        if ("GET".equalsIgnoreCase(httpMethod) && pathParameters != null) {
-			if (pathParameters.containsKey("tableId")) {
+        if ("GET".equalsIgnoreCase(method) && pathParameters != null) {
+            if (pathParameters.containsKey("tableId")) {
                 try {
                     return getTableById(objectMapper.writeValueAsString(event.getPathParameters().get("tableId")));
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
             }
-		}
+        }
 
-		if(path.equalsIgnoreCase("/signup") && httpMethod.equalsIgnoreCase("POST")){
-			signUp(event);
-		}
+        if("/reservations".equals(path) && "POST".equalsIgnoreCase(method)){
+            return postReservation(event);
+        }
 
-		if(path.equalsIgnoreCase("/signin") && httpMethod.equalsIgnoreCase("POST")){
-			signIn(event);
-		}
+        if("/reservations".equals(path) && "GET".equalsIgnoreCase(method)){
+            return getReservations();
+        }
 
-		if(path.equalsIgnoreCase("/tables") && httpMethod.equalsIgnoreCase("GET")){
-			getTables();
-		}
-
-		if(path.equalsIgnoreCase("/tables") && httpMethod.equalsIgnoreCase("POST")){
-			postTable(event);
-		}
-
-		if(path.equalsIgnoreCase("/reservations") && httpMethod.equalsIgnoreCase("GET")){
-			getReservations();
-		}
-
-		if(path.equalsIgnoreCase("/reservations") && httpMethod.equalsIgnoreCase("POST")){
-			postReservation(event);
-		}
-
-		return new APIGatewayV2HTTPResponse();
-	}
-
-	public APIGatewayV2HTTPResponse signUp(APIGatewayV2HTTPEvent event){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
-
-		try{
-			Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
-			String email = String.valueOf(body.get("email"));
-			String password = String.valueOf(body.get("password"));
-
-			Validator.isValidEmail(email);
-			Validator.isValidPassword(password);
-
-			String userPoolId = String.valueOf(getUserPoolIdByName(System.getenv("bookingUserPool")));
-
-			AdminCreateUserRequest adminCreateUserRequest = AdminCreateUserRequest
-					.builder()
-					.userPoolId(userPoolId)
-					.username(email)
-					.userAttributes(AttributeType.builder()
-									.name("email")
-									.value(email)
-									.build())
-					.messageAction(MessageActionType.SUPPRESS)
-					.build();
-			AdminSetUserPasswordRequest adminSetUserPassword = AdminSetUserPasswordRequest
-					.builder()
-					.password(password)
-					.userPoolId(userPoolId)
-					.username(email)
-					.permanent(true)
-					.build();
-
-			cognitoClient.adminCreateUser(adminCreateUserRequest);
-			cognitoClient.adminSetUserPassword(adminSetUserPassword);
-			response.setStatusCode(200);
-		} catch (Exception ex){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
+        return new APIGatewayProxyResponseEvent();
+    }
 
 
-	public APIGatewayV2HTTPResponse signIn(APIGatewayV2HTTPEvent event){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
+    private APIGatewayProxyResponseEvent signUp(APIGatewayProxyRequestEvent event) {
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
+            System.err.println("signUp was called");
+            String email = String.valueOf(body.get("email"));
+            String password = String.valueOf(body.get("password"));
 
-		try{
-			Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
-			String email = String.valueOf(body.get("email"));
-			String password = String.valueOf(body.get("password"));
+            if (!EmailValidator.validateEmail(email)) {
+                System.err.println("Email is invalid");
+                throw new Exception("Email is invalid");
+            }
 
-			Validator.isValidEmail(email);
-			Validator.isValidPassword(password);
+            if (!PasswordValidator.validatePassword(password)) {
+                System.err.println("Password is invalid");
+                throw new Exception("Email is invalid");
+            }
 
-			String userPoolId = String.valueOf(getUserPoolIdByName(System.getenv("bookingUserPool")));
-			String clientId = String.valueOf(getClientIdByUserPoolName(System.getenv("bookingUserPool")));
+            String userPoolId = new CognitoHelper().getUserPoolIdByName(System.getenv("bookingUserPool"))
+                    .orElseThrow(() -> new IllegalArgumentException("No such user pool"));
 
-			Map<String, String> authParams = new HashMap<>();
-			authParams.put("USERNAME", email);
-			authParams.put("PASSWORD", password);
+            AdminCreateUserRequest adminCreateUserRequest = AdminCreateUserRequest
+                    .builder()
+                    .userPoolId(userPoolId)
+                    .username(email)
+                    .userAttributes(AttributeType.builder().name("email").value(email).build())
+                    .messageAction(MessageActionType.SUPPRESS)
+                    .build();
+            System.err.println(adminCreateUserRequest.toString());
+            AdminSetUserPasswordRequest adminSetUserPassword = AdminSetUserPasswordRequest
+                    .builder()
+                    .password(password)
+                    .userPoolId(userPoolId)
+                    .username(email)
+                    .permanent(true)
+                    .build();
+            System.err.println(adminSetUserPassword.toString());
 
+            cognitoClient.adminCreateUser(adminCreateUserRequest);
+            cognitoClient.adminSetUserPassword(adminSetUserPassword);
 
-			AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
-					.userPoolId(userPoolId)
-					.clientId(clientId)
-					.authFlow(AuthFlowType.ADMIN_USER_PASSWORD_AUTH)
-					.authParameters(authParams)
-					.build();
+            response.setStatusCode(200);
 
-			AdminInitiateAuthResponse result = cognitoClient.adminInitiateAuth(authRequest);
+        } catch (Exception ex) {
+            System.err.println(ex);
+            response.setStatusCode(400);
+            response.setBody(ex.toString());
+        }
+        return response;
+    }
 
-			String accessToken = result.authenticationResult().idToken();
+    private APIGatewayProxyResponseEvent signIn(APIGatewayProxyRequestEvent event) {
+        System.err.println("signIn was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
 
-			Map<String, Object> jsonResponse = new HashMap<>();
-			jsonResponse.put("accessToken", accessToken);
-			response.setStatusCode(200);
-			response.setBody(objectMapper.writeValueAsString(jsonResponse));
-		} catch (Exception ex){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
+        try {
 
-	private APIGatewayV2HTTPResponse getTables(){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
-		try{
-			AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
-					.withRegion(System.getenv("region"))
-					.build();
+            Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
+            System.err.println("signUp was called");
+            String email = String.valueOf(body.get("email"));
+            String password = String.valueOf(body.get("password"));
 
-			ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("tablesTable"));
-			ScanResult scanResult = ddb.scan(scanRequest);
+            if (!EmailValidator.validateEmail(email)) {
+                System.err.println("Email is invalid");
+                throw new Exception("Email is invalid");
+            }
 
-			List<Map<String, Object>> tables = new ArrayList<>();
-			for (Map<String, AttributeValue> item : scanResult.getItems()) {
-				Map<String, Object> table = new LinkedHashMap<>();
-				table.put("id", Integer.parseInt(item.get("id").getS()));
-				table.put("number", Integer.parseInt(item.get("number").getN()));
-				table.put("places", Integer.parseInt(item.get("places").getN()));
-				table.put("isVip", Boolean.parseBoolean(item.get("isVip").getBOOL().toString()));
-				table.put("minOrder", Integer.parseInt(item.get("minOrder").getN()));
-				tables.add(table);
-			}
-			tables.sort(Comparator.comparing(o -> (Integer) o.get("id")));
-			Map<String, Object> jsonResponse = new HashMap<>();
-			jsonResponse.put("tables", tables);
+            if (!PasswordValidator.validatePassword(password)) {
+                System.err.println("Password is invalid");
+                throw new Exception("Email is invalid");
+            }
 
-			response.setStatusCode(200);
-			response.setBody(objectMapper.writeValueAsString(jsonResponse));
-		} catch (Exception e){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
+            String userPoolId = new CognitoHelper().getUserPoolIdByName(System.getenv("bookingUserPool"))
+                    .orElseThrow(() -> new IllegalArgumentException("No such user pool"));
 
+            String clientId = new CognitoHelper()
+                    .getClientIdByUserPoolName(System.getenv("bookingUserPool"))
+                    .orElseThrow(() -> new IllegalArgumentException("No such client id"));
 
-	private APIGatewayV2HTTPResponse getTableById(String tableId){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
-		try{
-			AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
-					.withRegion(System.getenv("region"))
-					.build();
+            Map<String, String> authParams = new HashMap<>();
+            authParams.put("USERNAME", email);
+            authParams.put("PASSWORD", password);
+            System.err.println(authParams);
+            AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
+                    .authFlow(AuthFlowType.ADMIN_NO_SRP_AUTH)
+                    .userPoolId(userPoolId)
+                    .clientId(clientId)
+                    .authParameters(authParams)
+                    .build();
+            System.err.println(authRequest);
 
-			ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("tablesTable"));
-			ScanResult scanResult = ddb.scan(scanRequest);
-			Map<String, AttributeValue> table = new HashMap<>();
-			for (Map<String, AttributeValue> item : scanResult.getItems()) {
-				int existingId = Integer.parseInt(item.get("id").getS().trim().replaceAll("\"", ""));
-				int requiredId = Integer.parseInt(tableId.trim().replaceAll("\"", ""));
-				if (existingId == requiredId) {
-					table = item;
-				}
-			}
-			Map<String, Object> jsonResponse = ItemUtils.toSimpleMapValue(table);
-			jsonResponse.replace("id", Integer.parseInt((String) jsonResponse.get("id")));
+            AdminInitiateAuthResponse result = cognitoClient.adminInitiateAuth(authRequest);
+            String accessToken = result.authenticationResult().idToken();
+            System.err.println(accessToken);
 
-			response.setStatusCode(200);
-			response.setBody(objectMapper.writeValueAsString(jsonResponse));
-		} catch (Exception e){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
+            Map<String, Object> jsonResponse = new HashMap<>();
+            jsonResponse.put("accessToken", accessToken);
 
-	private APIGatewayV2HTTPResponse getReservations(){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
-		try{
-			AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
-					.withRegion(System.getenv("region"))
-					.build();
-
-			ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("reservationsTable"));
-			ScanResult scanResult = ddb.scan(scanRequest);
-
-			List<Map<String, Object>> jsonResponse = new ArrayList<>();
-			for (Map<String, AttributeValue> item : scanResult.getItems()) {
-				item.remove("id");
-				Map<String, Object> reservation = new LinkedHashMap<>();
-				reservation.put("tableNumber", Integer.parseInt(item.get("tableNumber").getS()));
-				reservation.put("clientName", item.get("clientName").getS());
-				reservation.put("phoneNumber", item.get("phoneNumber").getS());
-				reservation.put("date", item.get("date").getS());
-				reservation.put("slotTimeStart", item.get("slotTimeStart").getS());
-				reservation.put("slotTimeEnd", item.get("slotTimeEnd").getS());
-
-				jsonResponse.add(reservation);
-			}
-
-			Map<String, Object> json = new HashMap<>();
-			json.put("reservations", jsonResponse);
-
-			response.setStatusCode(200);
-			response.setBody(objectMapper.writeValueAsString(jsonResponse));
-
-		} catch (Exception ex){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
-
-	private APIGatewayV2HTTPResponse postTable(APIGatewayV2HTTPEvent event){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
-		ObjectMapper objectMapper = new ObjectMapper();
-		AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
-				.withRegion(System.getenv("region"))
-				.build();
-		try{
-
-			Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
-			String id = String.valueOf(body.get("id"));
-			int number = (Integer) body.get("number");
-			int places = (Integer) body.get("places");
-			boolean isVip = (Boolean) body.get("isVip");
-			int minOrder = -1;
-			if (body.containsKey("minOrder")) {
-				minOrder = (Integer) body.get("minOrder");
-			}
-
-			Item item = new Item()
-					.withString("id", id)
-					.withInt("number", number)
-					.withInt("places", places)
-					.withBoolean("isVip", isVip);
-			if (minOrder != -1) {
-				item.withInt("minOrder", minOrder);
-			}
-
-			ddb.putItem(System.getenv("tablesTable"), ItemUtils.toAttributeValues(item));
+            response.setStatusCode(200);
+            response.setBody(objectMapper.writeValueAsString(jsonResponse));
+            System.err.println(objectMapper.writeValueAsString(jsonResponse));
+        } catch (Exception ex) {
+            System.err.println(ex);
+            response.setStatusCode(400);
+            response.setBody(ex.toString());
+        }
+        return response;
+    }
 
 
-			Map<String, Object> jsonResponse = new HashMap<>();
-			jsonResponse.put("id", Integer.parseInt(id));
+    private APIGatewayProxyResponseEvent postTable(APIGatewayProxyRequestEvent event) {
+        System.err.println("postTable was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
+        AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
+                .withRegion(System.getenv("region"))
+                .build();
+        try {
 
-			response.setStatusCode(200);
 
-			response.setStatusCode(200);
-			response.setBody(objectMapper.writeValueAsString(jsonResponse));
+            Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
+            System.err.println(body);
+            String id = String.valueOf(body.get("id"));
+            int number = (Integer) body.get("number");
+            int places = (Integer) body.get("places");
+            boolean isVip = (Boolean) body.get("isVip");
+            int minOrder = -1;
+            if (body.containsKey("minOrder")) {
+                minOrder = (Integer) body.get("minOrder");
+            }
 
-		} catch (Exception ex){
-			response.setStatusCode(400);
-		}
-		return response;
-	}
+            Item item = new Item()
+                    .withString("id", id)
+                    .withInt("number", number)
+                    .withInt("places", places)
+                    .withBoolean("isVip", isVip);
+            if (minOrder != -1) {
+                item.withInt("minOrder", minOrder);
+            }
+            System.err.println(item);
+            ddb.putItem(System.getenv("tablesTable"), ItemUtils.toAttributeValues(item));
 
-	private APIGatewayV2HTTPResponse postReservation(APIGatewayV2HTTPEvent event){
-		APIGatewayV2HTTPResponse response = new APIGatewayV2HTTPResponse();
+
+            Map<String, Object> jsonResponse = new HashMap<>();
+            jsonResponse.put("id", Integer.parseInt(id));
+            System.err.println(jsonResponse);
+            response.setStatusCode(200);
+            response.setBody(objectMapper.writeValueAsString(jsonResponse));
+        } catch (
+                Exception ex) {
+            System.err.println(ex);
+            response.setStatusCode(400);
+            response.setBody(ex.toString());
+        }
+        return response;
+    }
+
+    private APIGatewayProxyResponseEvent getTables() {
+        System.err.println("getTables was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
+                    .withRegion(System.getenv("region"))
+                    .build();
+
+            ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("tablesTable"));
+            ScanResult scanResult = ddb.scan(scanRequest);
+            System.err.println(scanResult);
+
+            List<Map<String, Object>> tables = new ArrayList<>();
+            for (Map<String, AttributeValue> item : scanResult.getItems()) {
+                Map<String, Object> table = new LinkedHashMap<>();
+                table.put("id", Integer.parseInt(item.get("id").getS()));
+                table.put("number", Integer.parseInt(item.get("number").getN()));
+                table.put("places", Integer.parseInt(item.get("places").getN()));
+                table.put("isVip", Boolean.parseBoolean(item.get("isVip").getBOOL().toString()));
+                table.put("minOrder", Integer.parseInt(item.get("minOrder").getN()));
+                tables.add(table);
+            }
+            System.err.println(tables);
+
+            tables.sort(Comparator.comparing(o -> (Integer) o.get("id")));
+            Map<String, Object> jsonResponse = new HashMap<>();
+            jsonResponse.put("tables", tables);
+            System.err.println(jsonResponse);
+            response.setStatusCode(200);
+            response.setBody(objectMapper.writeValueAsString(jsonResponse));
+        } catch (Exception e) {
+            response.setStatusCode(400);
+        }
+        return response;
+    }
+
+
+    private APIGatewayProxyResponseEvent getTableById(String tableId) {
+        System.err.println("getTableById was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
+                    .withRegion(System.getenv("region"))
+                    .build();
+
+            ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("tablesTable"));
+            ScanResult scanResult = ddb.scan(scanRequest);
+            System.err.println(scanResult);
+            Map<String, AttributeValue> table = new HashMap<>();
+            for (Map<String, AttributeValue> item : scanResult.getItems()) {
+                int existingId = Integer.parseInt(item.get("id").getS().trim().replaceAll("\"", ""));
+                int requiredId = Integer.parseInt(tableId.trim().replaceAll("\"", ""));
+                if (existingId == requiredId) {
+                    table = item;
+                }
+            }
+            System.err.println(table);
+            Map<String, Object> jsonResponse = ItemUtils.toSimpleMapValue(table);
+            jsonResponse.replace("id", Integer.parseInt((String) jsonResponse.get("id")));
+
+            System.err.println(jsonResponse);
+            response.setStatusCode(200);
+            response.setBody(objectMapper.writeValueAsString(jsonResponse));
+        } catch (Exception e) {
+            response.setStatusCode(400);
+        }
+        return response;
+    }
+
+	private APIGatewayProxyResponseEvent postReservation(APIGatewayProxyRequestEvent event){
+        System.err.println("postReservation was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
 		ObjectMapper objectMapper = new ObjectMapper();
 		AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
 				.withRegion(System.getenv("region"))
 				.build();
 		try{
 			Map<String, Object> body = objectMapper.readValue(event.getBody(), Map.class);
+            System.err.println(body);
 
 			String reservationId = UUID.randomUUID().toString();
 			String tableNumber = String.valueOf(body.get("tableNumber"));
@@ -360,11 +377,13 @@ public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGate
 					.withString("slotTimeEnd", slotTimeEnd);
 
 
+
+            System.err.println(item);
 			ddb.putItem(System.getenv("reservationsTable"), ItemUtils.toAttributeValues(item));
 
 			Map<String, Object> jsonResponse = new HashMap<>();
 			jsonResponse.put("reservationId", reservationId);
-
+            System.err.println(jsonResponse);
 			response.setStatusCode(200);
 			response.setBody(objectMapper.writeValueAsString(jsonResponse));
 		} catch (Exception ex){
@@ -373,34 +392,45 @@ public class ApiHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGate
 		return response;
 	}
 
-	public Optional<String> getUserPoolIdByName(String userPoolName) {
-		ListUserPoolsRequest listUserPoolsRequest = ListUserPoolsRequest.builder()
-				.build();
+    private APIGatewayProxyResponseEvent getReservations() {
+        System.err.println("getReservations was called");
+        APIGatewayProxyResponseEvent response = new APIGatewayProxyResponseEvent();
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard()
+                    .withRegion(System.getenv("region"))
+                    .build();
 
-		ListUserPoolsResponse listUserPoolsResponse = cognitoClient.listUserPools(listUserPoolsRequest);
-		for (UserPoolDescriptionType userPool : listUserPoolsResponse.userPools()) {
-			if (userPool.name().equals(userPoolName)) {
-				return Optional.of(userPool.id());
-			}
-		}
+            ScanRequest scanRequest = new ScanRequest().withTableName(System.getenv("reservationsTable"));
+            ScanResult scanResult = ddb.scan(scanRequest);
+            System.err.println(scanResult);
 
-		return Optional.empty();
-	}
+            List<Map<String, Object>> reservations = new ArrayList<>();
+            for (Map<String, AttributeValue> item : scanResult.getItems()) {
+                item.remove("id");
+                Map<String, Object> reservation = new LinkedHashMap<>();
+                reservation.put("tableNumber", Integer.parseInt(item.get("tableNumber").getS()));
+                reservation.put("clientName", item.get("clientName").getS());
+                reservation.put("phoneNumber", item.get("phoneNumber").getS());
+                reservation.put("date", item.get("date").getS());
+                reservation.put("slotTimeStart", item.get("slotTimeStart").getS());
+                reservation.put("slotTimeEnd", item.get("slotTimeEnd").getS());
 
-	public Optional<String> getClientIdByUserPoolName(String userPoolName) {
-		String userPoolId = getUserPoolIdByName(userPoolName).get();
+                reservations.add(reservation);
+            }
 
-		ListUserPoolClientsRequest listUserPoolClientsRequest = ListUserPoolClientsRequest.builder()
-				.userPoolId(userPoolId)
-				.build();
+            System.err.println(reservations);
 
-		ListUserPoolClientsResponse listUserPoolClientsResponse = cognitoClient.listUserPoolClients(listUserPoolClientsRequest);
-		for (UserPoolClientDescription client : listUserPoolClientsResponse.userPoolClients()) {
-			return Optional.of(client.clientId());
-		}
+            Map<String, Object> jsonResponse = new HashMap<>();
+            jsonResponse.put("reservations", reservations);
+            System.err.println(jsonResponse);
 
-		return Optional.empty();
-	}
+            response.setStatusCode(200);
+            response.setBody(objectMapper.writeValueAsString(jsonResponse));
 
-
+        } catch (Exception ex) {
+            response.setStatusCode(400);
+        }
+        return response;
+    }
 }
