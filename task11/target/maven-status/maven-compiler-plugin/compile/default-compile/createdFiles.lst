@@ -1,0 +1,5 @@
+com\task11\CognitoHelper.class
+com\task11\ApiHandler.class
+com\task11\EmailValidator.class
+com\task11\HandlerUtils.class
+com\task11\PasswordValidator.class
